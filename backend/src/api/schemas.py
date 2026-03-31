@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Annotated, Optional
-from pydantic import BaseModel, EmailStr, Field, ConfigDict, StringConstraints
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, StringConstraints, computed_field
 
 
 class UserCreate(BaseModel):
@@ -23,22 +23,22 @@ class Token(BaseModel):
 class PinCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
-    image_url: Optional[str]
+    image_url: Optional[str] = None
     link_url: Optional[str] = None
     board_id: int
-    image_width: Optional[int] = None
-    image_height: Optional[int] = None
+    # image_width: Optional[int] = None
+    # image_height: Optional[int] = None
 
 class PinResponse(BaseModel):
     id: int
     title: str
     description: Optional[str]
     image_url: str
-    image_width: Optional[int]
-    image_height: Optional[int]
-    aspect_ratio: Optional[float]
+    # image_width: Optional[int]
+    # image_height: Optional[int]
+    # aspect_ratio: Optional[float]
     likes_count: int
-    author_username: str
+    author_username: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

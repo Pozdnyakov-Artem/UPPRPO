@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Float, Text
 from sqlalchemy.orm import relationship
@@ -46,7 +47,10 @@ class Pin(Base):
     board = relationship("Board", back_populates="pins")
 
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    is_deleted = Column(Boolean, default=False)
+
+    @property
+    def author_username(self) -> Optional[str]:
+        return self.author.username if self.author else None
 
 class Board(Base):
     __tablename__ = "boards"
