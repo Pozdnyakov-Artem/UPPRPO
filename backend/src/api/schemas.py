@@ -15,18 +15,36 @@ class VerifyEmail(BaseModel):
     email: EmailStr
     code: int
 
-class UserResponse(BaseModel):
-    id: int
-    email: str
-    username: str
-    is_active: bool
-    is_verified: bool
-
-    model_config = ConfigDict(from_attributes=True)
-
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class PinCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = None
+    image_url: Optional[str]
+    link_url: Optional[str] = None
+    board_id: int
+    image_width: Optional[int] = None
+    image_height: Optional[int] = None
+
+class PinResponse(BaseModel):
+    id: int
+    title: str
+    description: Optional[str]
+    image_url: str
+    image_width: Optional[int]
+    image_height: Optional[int]
+    aspect_ratio: Optional[float]
+    likes_count: int
+    author_username: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class BoardCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = None
+    is_private: bool = False
 
 class TokenData(BaseModel):
     username: Optional[str] = None
