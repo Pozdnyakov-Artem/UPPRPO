@@ -83,12 +83,22 @@ async def delete_board(
         current_user: User = Depends(get_current_user)
 ):
     try:
-        result = await db.execute(delete(Board).where((Board.id == board_id) & (Board.user_id == current_user.id)))
-        await db.commit()
+        board = (await db.execute(select(Board).where(Board.id == board_id))).scalar_one_or_none()
 
-        if result.rowcount:
-            return {"message": "success"}
-        return HTTPException(status_code=400, detail="Такой доски нет")
+        if not board:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Доска не найден"
+            )
+
+        if board.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="У вас нет прав для удаления этой доски"
+            )
+        await db.delete(board)
+        await db.commit()
+        return {"message": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -99,14 +109,65 @@ async def delete_pin(
         current_user: User = Depends(get_current_user)
 ):
     try:
-        result = await db.execute(delete(Pin).where((Pin.id == pin_id) & (Pin.user_id == current_user.id)))
-        await db.commit()
 
-        if result.rowcount:
-            return {"message": "success"}
-        return HTTPException(status_code=400, detail="Такого пина нет")
+        pin = (await db.execute(select(Pin).where(Pin.id == pin_id))).scalar_one_or_none()
+
+        if not pin:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Пин не найден"
+            )
+
+        if pin.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="У вас нет прав для удаления этого пина"
+            )
+        await db.delete(pin)
+        await db.commit()
+        return {"message": "success"}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/delete/comment/{comment_id}", tags=["delete"])
+async def delete_comment(
+        comment_id:int,
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    try:
+
+        result = await db.execute(
+            select(PinComments).where(PinComments.id == comment_id)
+        )
+        comment = result.scalar_one_or_none()
+
+        if not comment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Комментарий не найден"
+            )
+
+        if comment.user_id != current_user.id:
+            pin_result = await db.execute(
+                select(Pin).where(Pin.id == comment.pin_id)
+            )
+            pin = pin_result.scalar_one_or_none()
+
+            if not pin or pin.user_id != current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="У вас нет прав для удаления этого комментария"
+                )
+
+        await db.delete(comment)
+        await db.commit()
+
+        return {"message": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/register", status_code=status.HTTP_201_CREATED, tags=["mail"])
 async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
