@@ -28,7 +28,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def generate_code():
-    return secrets.randbelow(1000000)
+    return secrets.SystemRandom().randint(100000, 999999)
 
 async def get_user_by_username(db: AsyncSession, username: str):
     result = await db.execute(select(User).where(User.username == username))
