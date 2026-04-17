@@ -46,7 +46,7 @@ class PinResponse(BaseModel):
     id: int
     title: str
     description: Optional[str]
-    image_url: str
+    image_url: Optional[str] = None
     # image_width: Optional[int]
     # image_height: Optional[int]
     # aspect_ratio: Optional[float]
@@ -58,6 +58,7 @@ class PinResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class BoardResponse(BaseModel):
+    id: int
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
     is_private: bool = False
