@@ -15,6 +15,15 @@ class UserDelete(BaseModel):
 class UserPublic(BaseModel):
     id: int
     username: str
+    img_url: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class UserProfile(BaseModel):
+    id: int
+    username: str
+    description: Optional[str] = None
+    image_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

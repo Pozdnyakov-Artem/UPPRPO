@@ -17,7 +17,7 @@ from fastapi.params import File
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from schemas import PinResponse
+from schemas import PinResponse, UserPublic, UserProfile
 from sqlalchemy.orm import Session, declarative_base, selectinload, joinedload
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -531,6 +531,49 @@ async def get_boards(
     boards = (await db.execute(select(Board).where(Board.user_id == current_user.id).options(selectinload(Board.owner)))).scalars().all()
 
     return boards
+
+@app.patch("/user/rename", response_model=UserProfile)
+async def rename_user(
+        new_name: str = Body(
+            min_length=3,
+            max_length=50,
+            description="Новое имя пользователя",
+            examples=["ruslan_dev", "user123"]
+        ),
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+
+    check_new_name = (await db.execute(select(User).where(User.username == new_name))).scalar_one_or_none()
+
+    if check_new_name:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Это имя уже занято"
+        )
+
+    current_user.username = new_name
+    await db.commit()
+    await db.refresh(current_user)
+
+    await invalidate_pins_cache()
+
+    return current_user
+
+@app.patch("/user/change_description", response_model=UserProfile)
+async def change_user_description(
+        new_description: str = Body(
+            description="Новое описание профиля"
+        ),
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    current_user.description = new_description
+    await db.commit()
+    await db.refresh(current_user)
+
+    return current_user
+
 # @app.get("/users/me", response_model=UserResponse)
 # async def read_users_me(current_user: User = Depends(get_current_user)):
 #     return current_user

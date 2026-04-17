@@ -13,6 +13,8 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
+    description = Column(String, nullable=True)
+    img_url = Column(String, nullable=True)
     hashed_password = Column(String, nullable=True)
     is_active = Column(Boolean, server_default=true())
     is_verified = Column(Boolean, server_default=false())
