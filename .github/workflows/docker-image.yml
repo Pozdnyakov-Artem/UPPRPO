@@ -37,9 +37,24 @@ jobs:
           
       - name: Run tests with coverage
         env:
-          TEST_DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/test_db
-          SECRET_KEY: ci_test_secret_key_123
-          REDIS_URL: redis://localhost:6379
+          TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          ALGORITHM: ${{ secrets.ALGORITHM }}
+          TIME_LIMIT: ${{ secrets.TIME_LIMIT }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+          MAIL_SERVER: ${{ secrets.MAIL_SERVER }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          VUE_APP_API_URL: ${{ secrets.VUE_APP_API_URL }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
         run: |
           pytest ./backend/src/api/tests/ -v --cov=main.py --cov-report=xml
 
