@@ -2,6 +2,11 @@ import pytest
 import pytest_asyncio
 import os
 from httpx import AsyncClient, ASGITransport
+
+os.environ["DATABASE_URL"] = os.getenv("TEST_DATABASE_URL", "sqlite+aiosqlite:///./test.db")
+os.environ["SECRET_KEY"] = os.getenv("SECRET_KEY", "test_secret_key_for_ci")
+os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
+
 from main import app
 from database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
