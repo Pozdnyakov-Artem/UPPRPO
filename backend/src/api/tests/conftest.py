@@ -3,9 +3,9 @@ import pytest_asyncio
 import os
 from httpx import AsyncClient, ASGITransport
 
-os.environ["DATABASE_URL"] = os.getenv("TEST_DATABASE_URL", "sqlite+aiosqlite:///./test.db")
-os.environ["SECRET_KEY"] = os.getenv("SECRET_KEY", "test_secret_key_for_ci")
-os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
+# os.environ["DATABASE_URL"] = os.getenv("TEST_DATABASE_URL", "sqlite+aiosqlite:///./test.db")
+# os.environ["SECRET_KEY"] = os.getenv("SECRET_KEY", "test_secret_key_for_ci")
+# os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
 
 from main import app
 from database import get_db
@@ -14,7 +14,7 @@ from models import Base
 from auth import create_access_token
 from datetime import timedelta
 
-# TEST_DB_URL = os.getenv("TEST_DATABASE_URL", "sqlite+aiosqlite:///./test.db")
+TEST_DB_URL = os.getenv("TEST_DATABASE_URL", "sqlite+aiosqlite:///./test.db")
 
 
 @pytest_asyncio.fixture(scope="function")
