@@ -18,6 +18,7 @@ EXTENSION_BY_TYPE = {
     "gif": ".gif",
     "webp": ".webp",
 }
+PINS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def ensure_upload_dirs() -> None:
