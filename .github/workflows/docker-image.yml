@@ -33,7 +33,7 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r ./backend/src/api/requirements
           
       - name: Run tests with coverage
         env:
