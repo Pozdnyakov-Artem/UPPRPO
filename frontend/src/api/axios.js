@@ -2,15 +2,12 @@
 import axios from 'axios'
 
 // Для Vue CLI: process.env.VUE_APP_*
-const API_URL = process.env.VUE_APP_API_URL || 'http://127.0.0.1:8000'
-
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: '/api',  // 🔥 Всегда относительный путь
   headers: {
     'Content-Type': 'application/json'
   },
   timeout: 15000,
-  // 🔥 Важно для CORS: отправлять куки/авторизацию
   withCredentials: false
 })
 
