@@ -3,9 +3,13 @@ import pytest_asyncio
 import os
 from httpx import AsyncClient, ASGITransport
 
-# os.environ["DATABASE_URL"] = os.getenv("TEST_DATABASE_URL", "sqlite+aiosqlite:///./test.db")
-# os.environ["SECRET_KEY"] = os.getenv("SECRET_KEY", "test_secret_key_for_ci")
-# os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
+os.environ["DATABASE_URL"] = os.getenv("TEST_DATABASE_URL", "sqlite+aiosqlite:///./test.db")
+os.environ.setdefault("SECRET_KEY", "test_secret_key_for_ci")
+os.environ.setdefault("ALGORITHM", "HS256")
+os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
+os.environ.setdefault("MAIL_USERNAME", "test")
+os.environ.setdefault("MAIL_PASSWORD", "test")
+os.environ.setdefault("MAIL_FROM", "test@example.com")
 
 from main import app
 from database import get_db
