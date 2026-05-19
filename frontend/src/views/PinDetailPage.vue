@@ -62,7 +62,8 @@
         <!-- Автор и дата -->
         <div class="meta">
           <div class="author">
-            <span class="avatar">{{ pin.author.username[0].toUpperCase() }}</span>
+            <img v-if="authorAvatar" class="avatar-img" :src="authorAvatar" :alt="pin.author.username">
+            <span v-else class="avatar">{{ pin.author.username[0].toUpperCase() }}</span>
             <span>{{ pin.author.username }}</span>
           </div>
           <span class="date">{{ formatDate(pin.created_at) }}</span>
@@ -110,7 +111,8 @@
             class="comment-item"
           >
             <div class="comment-header">
-              <span class="avatar small">{{ comment.user.username[0].toUpperCase() }}</span>
+              <img v-if="commentAvatar(comment)" class="avatar-img small" :src="commentAvatar(comment)" :alt="comment.user.username">
+              <span v-else class="avatar small">{{ comment.user.username[0].toUpperCase() }}</span>
               <span class="username">{{ comment.user.username }}</span>
               <span class="date">{{ formatDate(comment.created_at) }}</span>
               
@@ -174,6 +176,8 @@ const isOwner = computed(() => {
 })
 
 const resolvedImageUrl = computed(() => resolveImageUrl(pin.value?.image_url))
+const authorAvatar = computed(() => resolveImageUrl(pin.value?.author?.img_url || pin.value?.author?.image_url))
+const commentAvatar = (comment) => resolveImageUrl(comment?.user?.img_url || comment?.user?.image_url)
 
 // Загрузка пина
 const loadPin = async () => {
@@ -318,19 +322,21 @@ onMounted(() => {
 <style scoped>
 .pin-detail-page {
   min-height: 100vh;
-  background: #f0f0f0;
+  background: var(--bg);
+  color: var(--text);
 }
 
 /* 🔹 Хедер */
 .detail-header {
   position: sticky;
   top: 0;
-  background: white;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(18px);
   padding: 1rem 2rem;
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-bottom: 1px solid var(--border);
   z-index: 100;
 }
 
@@ -346,11 +352,11 @@ onMounted(() => {
   font-size: 1.25rem;
   cursor: pointer;
   padding: 0.5rem;
-  color: #333;
+  color: var(--text);
 }
 
 .btn-back:hover {
-  color: #e60023;
+  color: var(--primary);
 }
 
 .header-actions {
@@ -377,10 +383,11 @@ onMounted(() => {
 
 /* 🔹 Изображение */
 .pin-image-wrapper {
-  background: white;
-  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-soft);
 }
 
 .pin-image-wrapper img {
@@ -396,8 +403,8 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  color: #999;
+  background: var(--surface-soft);
+  color: var(--text-muted);
 }
 
 .image-placeholder span {
@@ -407,20 +414,21 @@ onMounted(() => {
 
 /* 🔹 Информация */
 .pin-info {
-  background: white;
+  background: var(--surface);
+  border: 1px solid var(--border);
   padding: 1.5rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
 }
 
 .pin-info h2 {
   margin: 0 0 1rem 0;
   font-size: 1.5rem;
-  color: #333;
+  color: var(--text);
 }
 
 .description {
-  color: #555;
+  color: var(--text-muted);
   line-height: 1.6;
   margin: 0 0 1rem 0;
   
@@ -437,7 +445,7 @@ onMounted(() => {
 
 .link-url {
   display: inline-block;
-  color: #e60023;
+  color: var(--primary);
   text-decoration: none;
   margin: 0 0 1rem 0;
   font-size: 0.95rem;
@@ -452,11 +460,11 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 0;
-  border-top: 1px solid #eee;
-  border-bottom: 1px solid #eee;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   margin: 1rem 0;
   font-size: 0.9rem;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .author {
@@ -464,14 +472,14 @@ onMounted(() => {
   align-items: center;
   gap: 0.5rem;
   font-weight: 500;
-  color: #333;
+  color: var(--text);
 }
 
 .avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #e60023;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
   color: white;
   display: flex;
   align-items: center;
@@ -486,6 +494,19 @@ onMounted(() => {
   font-size: 0.75rem;
 }
 
+.avatar-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.avatar-img.small {
+  width: 24px;
+  height: 24px;
+}
+
 .actions {
   display: flex;
   gap: 0.5rem;
@@ -495,20 +516,21 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  background: #f0f0f0;
-  color: #333;
+  background: var(--surface-soft);
+  color: var(--text);
 }
 
 .like-btn:hover:not(:disabled) {
-  background: #e0e0e0;
+  background: var(--primary-soft);
 }
 
 /* 🔹 Комментарии */
 .comments-section {
-  background: white;
+  background: var(--surface);
+  border: 1px solid var(--border);
   padding: 1.5rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
   align-self: start;
   position: sticky;
   top: 100px;
@@ -517,7 +539,7 @@ onMounted(() => {
 .comments-section h3 {
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
-  color: #333;
+  color: var(--text);
 }
 
 .comment-form {
@@ -527,18 +549,20 @@ onMounted(() => {
 .comment-form textarea {
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   font-size: 1rem;
   font-family: inherit;
   resize: vertical;
   min-height: 80px;
   box-sizing: border-box;
+  color: var(--text);
+  background: var(--surface-raised);
 }
 
 .comment-form textarea:focus {
   outline: none;
-  border-color: #e60023;
+  border-color: var(--primary);
 }
 
 .comment-form-actions {
@@ -549,7 +573,7 @@ onMounted(() => {
 }
 
 .comment-form-actions small {
-  color: #999;
+  color: var(--text-muted);
   font-size: 0.8rem;
 }
 
@@ -564,8 +588,8 @@ onMounted(() => {
 
 .comment-item {
   padding: 0.75rem;
-  background: #f9f9f9;
-  border-radius: 8px;
+  background: var(--surface-soft);
+  border-radius: var(--radius);
 }
 
 .comment-header {
@@ -578,11 +602,11 @@ onMounted(() => {
 
 .username {
   font-weight: 600;
-  color: #333;
+  color: var(--text);
 }
 
 .date {
-  color: #999;
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
@@ -590,26 +614,26 @@ onMounted(() => {
   margin-left: auto;
   background: none;
   border: none;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
   font-size: 1rem;
   padding: 0.25rem;
 }
 
 .btn-delete-comment:hover {
-  color: #e60023;
+  color: var(--primary);
 }
 
 .comment-text {
   margin: 0;
-  color: #444;
+  color: var(--text);
   line-height: 1.5;
   white-space: pre-wrap;
 }
 
 .no-comments {
   text-align: center;
-  color: #999;
+  color: var(--text-muted);
   padding: 1rem;
   font-style: italic;
 }
@@ -619,19 +643,19 @@ onMounted(() => {
 .error-box {
   text-align: center;
   padding: 3rem;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .error-box {
-  color: #c62828;
-  background: #ffebee;
-  border-radius: 8px;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+  border-radius: var(--radius);
   margin: 2rem;
 }
 
 .btn {
   padding: 0.5rem 1rem;
-  border: none;
+  border: 1px solid var(--border);
   border-radius: 20px;
   font-weight: 600;
   cursor: pointer;
@@ -644,12 +668,14 @@ onMounted(() => {
 }
 
 .btn.primary {
-  background: #e60023;
+  background: var(--primary);
+  border-color: var(--primary);
   color: white;
 }
 
 .btn.danger {
-  background: #c62828;
+  background: var(--danger);
+  border-color: var(--danger);
   color: white;
 }
 
@@ -658,14 +684,16 @@ onMounted(() => {
   width: 6px;
 }
 .comments-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--surface-soft);
   border-radius: 3px;
 }
 .comments-list::-webkit-scrollbar-thumb {
-  background: #ccc;
+  background: var(--border);
   border-radius: 3px;
 }
 .comments-list::-webkit-scrollbar-thumb:hover {
-  background: #999;
+  background: var(--text-muted);
 }
 </style>
+  color: var(--text);
+  background: var(--surface-raised);

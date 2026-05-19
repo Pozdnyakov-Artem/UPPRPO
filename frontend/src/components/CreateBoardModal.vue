@@ -76,14 +76,11 @@
 </template>
 
 <script setup>
-// 🔥 Импортируем для ESLint (игнорируй предупреждение Vue о "не нужно импортировать")
-import { ref, computed } from 'vue'
-import { defineProps, defineEmits } from 'vue'  // ← добавили импорт
+import { ref, computed, defineProps, defineEmits } from 'vue'
 import { boardsApi } from '@/api/endpoints'
 
-// 🔥 Не присваиваем в переменную, если не используем в скрипте
 defineProps({
-  modelValue: Boolean  // v-model support
+  modelValue: Boolean
 })
 
 const emit = defineEmits(['update:modelValue', 'board-created'])
@@ -134,7 +131,7 @@ const submit = async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(7, 10, 20, 0.62);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -143,13 +140,14 @@ const submit = async () => {
 }
 
 .modal-card {
-  background: white;
-  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow);
 }
 
 .modal-header {
@@ -157,27 +155,27 @@ const submit = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border);
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 1.25rem;
-  color: #333;
+  color: var(--text);
 }
 
 .close-btn {
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 0.25rem 0.5rem;
   line-height: 1;
 }
 
 .close-btn:hover {
-  color: #333;
+  color: var(--text);
 }
 
 .modal-form {
@@ -191,7 +189,7 @@ const submit = async () => {
 .form-group label {
   display: block;
   font-weight: 600;
-  color: #333;
+  color: var(--text);
   margin-bottom: 0.5rem;
   font-size: 0.95rem;
 }
@@ -200,10 +198,12 @@ const submit = async () => {
 .form-group textarea {
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   font-size: 1rem;
   font-family: inherit;
+  color: var(--text);
+  background: var(--surface-raised);
   box-sizing: border-box;
   transition: border-color 0.2s;
 }
@@ -211,12 +211,12 @@ const submit = async () => {
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #e60023;
+  border-color: var(--primary);
 }
 
 .form-group small {
   display: block;
-  color: #999;
+  color: var(--text-muted);
   font-size: 0.8rem;
   margin-top: 0.25rem;
   text-align: right;
@@ -251,8 +251,8 @@ const submit = async () => {
 }
 
 .alert.error {
-  background: #ffebee;
-  color: #c62828;
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+  color: var(--danger);
 }
 
 .modal-actions {
@@ -264,7 +264,7 @@ const submit = async () => {
 
 .btn {
   padding: 0.75rem 1.5rem;
-  border: none;
+  border: 1px solid var(--border);
   border-radius: 24px;
   font-size: 1rem;
   font-weight: 600;
@@ -278,20 +278,22 @@ const submit = async () => {
 }
 
 .btn.primary {
-  background: #e60023;
+  background: var(--primary);
+  border-color: var(--primary);
   color: white;
 }
 
 .btn.primary:hover:not(:disabled) {
-  background: #c4001d;
+  background: var(--primary-strong);
+  border-color: var(--primary-strong);
 }
 
 .btn.secondary {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--surface-soft);
+  color: var(--text);
 }
 
 .btn.secondary:hover:not(:disabled) {
-  background: #e0e0e0;
+  background: var(--primary-soft);
 }
 </style>

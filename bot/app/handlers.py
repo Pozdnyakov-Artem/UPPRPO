@@ -1,4 +1,5 @@
 import imghdr
+import os
 import uuid
 from pathlib import Path
 from typing import Optional
@@ -15,7 +16,7 @@ from db.database import session_factory
 
 router = Router()
 BASE_DIR = Path(__file__).resolve().parents[2]
-UPLOADS_DIR = BASE_DIR / "backend" / "src" / "api" / "uploads" / "pins"
+UPLOADS_DIR = Path(os.getenv("BOT_UPLOADS_DIR", BASE_DIR / "backend" / "src" / "api" / "uploads" / "pins"))
 ALLOWED_IMAGE_TYPES = {"jpeg", "png", "gif", "webp"}
 EXTENSION_BY_TYPE = {
     "jpeg": ".jpg",
