@@ -60,9 +60,39 @@ services:
         condition: service_healthy
     restart: on-failure
 
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - frontend_dist:/app/dist
+    environment:
+      - NPM_CONFIG_REGISTRY=https://registry.npmmirror.com
+    command: sh -c "npm ci && npm run build"
+    restart: "no"
+    networks:
+      - my-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx/default.conf:/etc/nginx/nginx.conf:ro
+      # - ./certs:/etc/nginx/certs:ro # Для SSL в будущем
+    depends_on:
+      - frontend
+      - backend_upprpo
+    networks:
+      - my-network
+    restart: always
+
 volumes:
   db_data:
   redis_data:
+  frontend_dist:
 
 networks:
   my-network:
