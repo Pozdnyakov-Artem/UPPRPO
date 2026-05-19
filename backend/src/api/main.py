@@ -14,7 +14,7 @@ from fastapi_cache.decorator import cache
 from fastapi import FastAPI, Depends, HTTPException, status, Request, UploadFile, Query, Body
 from fastapi.params import File
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, delete, func, or_
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from schemas import PinResponse, UserPublic, UserProfile
 from sqlalchemy.orm import Session, declarative_base, selectinload, joinedload
@@ -510,9 +510,79 @@ async def get_pins(
 async def get_boards(
         db: AsyncSession = Depends(get_db),
         current_user: User = Depends(get_current_user)):
-    boards = (await db.execute(select(Board).where(Board.user_id == current_user.id).options(selectinload(Board.owner)))).scalars().all()
+    boards = (await db.execute(
+        select(Board)
+        .where(Board.user_id == current_user.id)
+        .options(selectinload(Board.owner))
+        .order_by(Board.created_at.desc(), Board.id.desc())
+    )).scalars().all()
 
     return boards
+
+@app.get("/boards/all", response_model=List[BoardResponse])
+async def get_all_visible_boards(
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user)):
+    boards = (await db.execute(
+        select(Board)
+        .where(or_(Board.is_private == False, Board.user_id == current_user.id))
+        .options(selectinload(Board.owner))
+        .order_by(Board.created_at.desc(), Board.id.desc())
+    )).scalars().all()
+
+    return boards
+
+@app.get("/boards/{board_id}/pins", response_model=PaginatedResponse[PinResponse])
+async def get_board_pins(
+        board_id: int,
+        page:int = Query(1, ge=1, description="Номер страницы"),
+        size:int = Query(20, ge=1, le=100, description="Размер страницы"),
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    board = (await db.execute(
+        select(Board).where(Board.id == board_id).options(selectinload(Board.owner))
+    )).scalar_one_or_none()
+
+    if not board or (board.is_private and board.user_id != current_user.id):
+        raise HTTPException(status_code=404, detail="Доска не найдена или недоступна")
+
+    offset = (page - 1) * size
+    query = (
+        select(Pin)
+        .where(Pin.board_id == board_id)
+        .options(selectinload(Pin.author), selectinload(Pin.comments))
+        .order_by(Pin.created_at.desc(), Pin.id.desc())
+    )
+
+    total = (await db.execute(select(func.count()).select_from(query.subquery()))).scalar_one()
+    pins = (await db.execute(query.limit(size).offset(offset))).scalars().all()
+
+    liked_pin_ids = set()
+    if pins:
+        pin_ids = [pin.id for pin in pins]
+        likes_result = await db.execute(
+            select(PinLike.pin_id).where(
+                (PinLike.pin_id.in_(pin_ids)) &
+                (PinLike.user_id == current_user.id)
+            )
+        )
+        liked_pin_ids = set(likes_result.scalars().all())
+
+    for pin in pins:
+        pin.is_liked = pin.id in liked_pin_ids
+
+    total_pages = (total + size - 1) // size
+    meta = PaginationMeta(
+        page=page,
+        size=size,
+        total=total,
+        pages=total_pages,
+        has_next=page < total_pages,
+        has_prev=page > 1
+    )
+
+    return PaginatedResponse(items=[PinResponse.model_validate(pin) for pin in pins], meta=meta)
 
 @app.patch("/user/rename", response_model=UserProfile)
 async def rename_user(
@@ -553,6 +623,23 @@ async def change_user_description(
     current_user.description = new_description
     await db.commit()
     await db.refresh(current_user)
+
+    return current_user
+
+@app.patch("/user/avatar", response_model=UserProfile)
+async def change_user_avatar(
+        image_url: str = Body(
+            max_length=500,
+            description="URL аватарки пользователя"
+        ),
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    current_user.img_url = image_path_to_url(image_url)
+    await db.commit()
+    await db.refresh(current_user)
+
+    await invalidate_pins_cache()
 
     return current_user
 

@@ -5,6 +5,7 @@ itsdangerous>=2.1.2
 
 sqlalchemy==2.0.25
 asyncpg==0.29.0
+greenlet
 
 alembic>=1.13.0
 
@@ -25,6 +26,7 @@ fastapi-cache2[redis]>=0.2.1
 
 pytest
 pytest-asyncio
+aiosqlite
 httpx
 pytest-cov
 psycopg2-binary

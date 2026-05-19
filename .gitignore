@@ -1,0 +1,14 @@
+.DS_Store
+.env
+
+__pycache__/
+*.py[cod]
+.coverage
+.pytest_cache/
+.venv/
+test.db
+
+node_modules/
+dist/
+
+backend/src/api/uploads/
