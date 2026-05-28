@@ -1,16 +1,19 @@
 <template>
   <div class="feed-page">
-    <!-- Хедер -->
     <header class="feed-header">
-      <h1 class="brand-title">OnlyFans Ruslana</h1>
+      <router-link to="/" class="brand-title">OnlyFans Ruslana</router-link>
       <div class="header-actions">
+        <button class="icon-btn" type="button" @click="toggleTheme" :title="isDark ? 'Светлая тема' : 'Темная тема'">
+          {{ isDark ? '☀' : '☾' }}
+        </button>
         <button class="btn outline" @click="showBoardModal = true">
           + Доска
         </button>
         <button class="btn primary" @click="showPinModal = true">
           + Пин
         </button>
-        <button class="btn link" @click="logout">Выйти</button>
+        <router-link to="/boards" class="btn outline">Доски</router-link>
+        <router-link to="/catalog" class="btn outline">Каталог</router-link>
         <router-link to="/profile" class="btn outline">👤 Профиль</router-link>
       </div>
     </header>
@@ -23,12 +26,21 @@
 
     <CreatePinModal 
       v-model="showPinModal"
+      :boards-version="boardsVersion"
       @pin-created="handlePinCreated"
       @create-board="showBoardModal = true"
     />
 
-    <!-- Лента пинов (Masonry) -->
-    <div class="pins-masonry">
+    <main class="feed-main">
+      <div class="feed-toolbar">
+        <div>
+          <p class="eyebrow">Лента</p>
+          <h2>Свежие пины</h2>
+        </div>
+        <span v-if="meta" class="counter">{{ meta.total }} всего</span>
+      </div>
+
+      <div class="pins-masonry">
       <PinCard 
         v-for="pin in pins" 
         :key="pin.id" 
@@ -36,7 +48,8 @@
         @like="handleLike"
         @click="openPinDetail"
       />
-    </div>
+      </div>
+    </main>
 
     <!-- Пагинация -->
     <div class="pagination" v-if="meta">
@@ -77,6 +90,18 @@ const currentPage = ref(1)
 
 const showBoardModal = ref(false)
 const showPinModal = ref(false)
+const boardsVersion = ref(0)
+const isDark = ref(localStorage.getItem('theme') === 'dark')
+
+const applyTheme = () => {
+  document.documentElement.dataset.theme = isDark.value ? 'dark' : 'light'
+  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+}
+
+const toggleTheme = () => {
+  isDark.value = !isDark.value
+  applyTheme()
+}
 
 // Загрузка пинов
 const loadPins = async (page = 1, size = 20) => {
@@ -122,8 +147,7 @@ const openPinDetail = (pinId) => {
 
 const handleBoardCreated = (board) => {
   console.log('✅ Доска создана:', board)
-  // Если модалка пина открыта — можно обновить список досок внутри неё
-  // (реализуется через provide/inject или ref)
+  boardsVersion.value += 1
 }
 
 const handlePinCreated = (pin) => {
@@ -132,12 +156,8 @@ const handlePinCreated = (pin) => {
   loadPins(1)
 }
 
-const logout = () => {
-  authStore.logout()
-  router.push('/login')
-}
-
 onMounted(() => {
+  applyTheme()
   // Если не авторизован — редирект на логин
   if (!authStore.isAuthenticated) {
     router.push('/login')
@@ -150,53 +170,100 @@ onMounted(() => {
 <style scoped>
 .feed-page {
   min-height: 100vh;
-  background: #f0f0f0;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 18%, transparent), transparent 32rem),
+    var(--bg);
+  color: var(--text);
 }
 
 .feed-header {
   position: sticky;
   top: 0;
-  background: white;
-  padding: 1rem 2rem;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(18px);
+  padding: 0.85rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-bottom: 1px solid var(--border);
   z-index: 100;
 }
 
 .header-actions {
   display: flex;
-  gap: 1rem;
+  gap: 0.65rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
-.btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 20px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.btn.primary {
-  background: #e60023;
-  color: white;
+.btn.outline {
+  background: var(--surface);
 }
 
 .btn.link {
-  background: none;
-  color: #555;
+  background: transparent;
+  color: var(--text-muted);
 }
 
-/* Masonry-сетка через CSS columns */
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.18s, transform 0.18s;
+}
+
+.icon-btn:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.feed-main {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 0;
+}
+
+.feed-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.feed-toolbar h2 {
+  margin: 0;
+  font-size: clamp(1.7rem, 3vw, 2.8rem);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--accent);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.counter {
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  font-weight: 700;
+}
+
 .pins-masonry {
   column-count: 2;
   column-gap: 1rem;
-  padding: 1rem 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
 }
 
 @media (min-width: 768px) {
@@ -217,6 +284,16 @@ onMounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 2rem;
+  color: var(--text);
+}
+
+.pagination button {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.55rem 1rem;
+  cursor: pointer;
 }
 
 .pagination button:disabled {
@@ -227,18 +304,33 @@ onMounted(() => {
 .loader {
   text-align: center;
   padding: 2rem;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .brand-title {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  font-weight: 800;           /* Максимальная жирность как у логотипа */
-  font-size: 1.55rem;         /* Чуть крупнее стандартного h1 */
-  color: #00AFF0;             /* 🔥 Официальный цвет OnlyFans */
-  letter-spacing: -0.6px;     /* Лёгкое сжатие как в оригинале */
+  font-weight: 900;
+  font-size: 1.35rem;
+  color: var(--primary);
+  letter-spacing: 0;
   margin: 0;
   line-height: 1;
   user-select: none;
-  padding: 0.2rem 0;
+  text-decoration: none;
+}
+
+@media (max-width: 720px) {
+  .feed-header {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 0.9rem 1rem;
+  }
+
+  .feed-main {
+    padding: 1rem;
+  }
+
+  .pins-masonry {
+    column-count: 1;
+  }
 }
 </style>

@@ -14,7 +14,7 @@ from fastapi_cache.decorator import cache
 from fastapi import FastAPI, Depends, HTTPException, status, Request, UploadFile, Query, Body
 from fastapi.params import File
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, delete, func, or_
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from schemas import PinResponse, UserPublic, UserProfile
 from sqlalchemy.orm import Session, declarative_base, selectinload, joinedload
@@ -152,6 +152,7 @@ async def delete_board(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="У вас нет прав для удаления этой доски"
             )
+        delete_stored_image(board.avatar_url)
         for pin in board.pins:
             delete_stored_image(pin.image_url)
         await db.delete(board)
@@ -324,8 +325,10 @@ async def create_board(board: BoardCreate,
         ).scalar_one_or_none():
         raise HTTPException(status_code=409, detail="доска с таким именем уже есть")
 
+    board_data = board.model_dump()
+    board_data["avatar_url"] = image_path_to_url(board.avatar_url)
     db_board = Board(
-        **board.model_dump(),
+        **board_data,
         user_id=current_user.id
     )
 
@@ -346,6 +349,10 @@ async def create_pin(
         db: AsyncSession = Depends(get_db),
         current_user: User = Depends(get_current_user)
 ):
+    image_url = image_path_to_url(pin.image_url)
+    if not image_url:
+        raise HTTPException(status_code=400, detail="Для пина нужно загрузить изображение")
+
     board_result = await db.execute(
         select(Board)
         .where((Board.id == pin.board_id) & (Board.user_id == current_user.id))
@@ -357,7 +364,7 @@ async def create_pin(
     # aspect_ratio = pin.image_width / pin.image_height if pin.image_width and pin.image_height else 1.0
 
     db_pin = Pin(
-        **{**pin.model_dump(), "image_url": image_path_to_url(pin.image_url)},
+        **{**pin.model_dump(), "image_url": image_url},
         user_id=current_user.id,
         # aspect_ratio=aspect_ratio,
         likes_count=0
@@ -456,6 +463,7 @@ async def add_comment(
 async def get_pins(
         page:int = Query(1, ge=1, description="Номер страницы"),
         size:int = Query(20, ge=1, le=100, description="Размер страницы"),
+        q: str | None = Query(None, min_length=1, max_length=100, description="Поиск по названию и описанию"),
         db: AsyncSession = Depends(get_db),
         current_user: User = Depends(get_current_user)
 ):
@@ -465,6 +473,10 @@ async def get_pins(
         selectinload(Pin.author),  # Загружаем автора сразу
         selectinload(Pin.comments)
     )
+
+    if q:
+        search = f"%{q.strip()}%"
+        query = query.where(or_(Pin.title.ilike(search), Pin.description.ilike(search)))
 
     query = query.order_by(Pin.created_at.desc())
 
@@ -506,13 +518,106 @@ async def get_pins(
 
     return PaginatedResponse(items=items, meta=meta)
 
+
+async def add_board_previews(db: AsyncSession, boards: List[Board]) -> List[Board]:
+    if not boards:
+        return boards
+
+    board_ids = [board.id for board in boards]
+    result = await db.execute(
+        select(Pin.board_id, Pin.image_url)
+        .where(Pin.board_id.in_(board_ids), Pin.image_url.is_not(None))
+        .order_by(Pin.created_at.desc(), Pin.id.desc())
+    )
+
+    previews_by_board = {board_id: [] for board_id in board_ids}
+    for board_id, image_url in result.all():
+        previews = previews_by_board.get(board_id)
+        if previews is not None and len(previews) < 4:
+            previews.append(image_url)
+
+    for board in boards:
+        board.preview_images = previews_by_board.get(board.id, [])
+
+    return boards
+
 @app.get("/boards", response_model=List[BoardResponse])
 async def get_boards(
         db: AsyncSession = Depends(get_db),
         current_user: User = Depends(get_current_user)):
-    boards = (await db.execute(select(Board).where(Board.user_id == current_user.id).options(selectinload(Board.owner)))).scalars().all()
+    boards = (await db.execute(
+        select(Board)
+        .where(Board.user_id == current_user.id)
+        .options(selectinload(Board.owner))
+        .order_by(Board.created_at.desc(), Board.id.desc())
+    )).scalars().all()
 
-    return boards
+    return await add_board_previews(db, boards)
+
+@app.get("/boards/all", response_model=List[BoardResponse])
+async def get_all_visible_boards(
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user)):
+    boards = (await db.execute(
+        select(Board)
+        .where(or_(Board.is_private == False, Board.user_id == current_user.id))
+        .options(selectinload(Board.owner))
+        .order_by(Board.created_at.desc(), Board.id.desc())
+    )).scalars().all()
+
+    return await add_board_previews(db, boards)
+
+@app.get("/boards/{board_id}/pins", response_model=PaginatedResponse[PinResponse])
+async def get_board_pins(
+        board_id: int,
+        page:int = Query(1, ge=1, description="Номер страницы"),
+        size:int = Query(20, ge=1, le=100, description="Размер страницы"),
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    board = (await db.execute(
+        select(Board).where(Board.id == board_id).options(selectinload(Board.owner))
+    )).scalar_one_or_none()
+
+    if not board or (board.is_private and board.user_id != current_user.id):
+        raise HTTPException(status_code=404, detail="Доска не найдена или недоступна")
+
+    offset = (page - 1) * size
+    query = (
+        select(Pin)
+        .where(Pin.board_id == board_id)
+        .options(selectinload(Pin.author), selectinload(Pin.comments))
+        .order_by(Pin.created_at.desc(), Pin.id.desc())
+    )
+
+    total = (await db.execute(select(func.count()).select_from(query.subquery()))).scalar_one()
+    pins = (await db.execute(query.limit(size).offset(offset))).scalars().all()
+
+    liked_pin_ids = set()
+    if pins:
+        pin_ids = [pin.id for pin in pins]
+        likes_result = await db.execute(
+            select(PinLike.pin_id).where(
+                (PinLike.pin_id.in_(pin_ids)) &
+                (PinLike.user_id == current_user.id)
+            )
+        )
+        liked_pin_ids = set(likes_result.scalars().all())
+
+    for pin in pins:
+        pin.is_liked = pin.id in liked_pin_ids
+
+    total_pages = (total + size - 1) // size
+    meta = PaginationMeta(
+        page=page,
+        size=size,
+        total=total,
+        pages=total_pages,
+        has_next=page < total_pages,
+        has_prev=page > 1
+    )
+
+    return PaginatedResponse(items=[PinResponse.model_validate(pin) for pin in pins], meta=meta)
 
 @app.patch("/user/rename", response_model=UserProfile)
 async def rename_user(
@@ -553,6 +658,23 @@ async def change_user_description(
     current_user.description = new_description
     await db.commit()
     await db.refresh(current_user)
+
+    return current_user
+
+@app.patch("/user/avatar", response_model=UserProfile)
+async def change_user_avatar(
+        image_url: str = Body(
+            max_length=500,
+            description="URL аватарки пользователя"
+        ),
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    current_user.img_url = image_path_to_url(image_url)
+    await db.commit()
+    await db.refresh(current_user)
+
+    await invalidate_pins_cache()
 
     return current_user
 

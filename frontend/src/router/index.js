@@ -39,14 +39,26 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/:pathMatch(.*)*',
-    redirect: '/'
+    path: '/boards',
+    name: 'boards',
+    component: () => import('@/views/BoardsPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/catalog',
+    name: 'catalog',
+    component: () => import('@/views/CatalogPage.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/profile',
     name: 'profile',
     component: () => import('@/views/ProfilePage.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ]
 

@@ -15,7 +15,8 @@
       <h4>{{ pin.title }}</h4>
       <p v-if="pin.description" class="description">{{ pin.description }}</p>
       <div class="author">
-        <span class="avatar">{{ getInitials(pin.author.username) }}</span>
+        <img v-if="authorAvatar" class="avatar-img" :src="authorAvatar" :alt="pin.author.username">
+        <span v-else class="avatar">{{ getInitials(pin.author.username) }}</span>
         <span>{{ pin.author.username }}</span>
       </div>
     </div>
@@ -35,6 +36,7 @@ const props = defineProps({
 
 const emit = defineEmits(['like', 'click'])
 const resolvedImageUrl = computed(() => resolveImageUrl(props.pin?.image_url))
+const authorAvatar = computed(() => resolveImageUrl(props.pin?.author?.img_url || props.pin?.author?.image_url))
 
 // const onImageError = (e) => {
 //   e.target.src = 'https://via.placeholder.com/400x600?text=No+Image'
@@ -66,50 +68,53 @@ const onImageError = (e) => {
 .pin-card {
   break-inside: avoid;
   margin-bottom: 1rem;
-  background: white;
-  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-soft);
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
 }
 .pin-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
 }
 .image-wrapper { position: relative; }
 .image-wrapper img {
   width: 100%;
   display: block;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border);
   min-height: 200px;
   object-fit: cover;
+  background: var(--surface-soft);
 }
 .like-btn {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  background: white;
-  border: none;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  color: var(--text);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 0.25rem 0.75rem;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-soft);
 }
-.like-btn:hover { background: #f0f0f0; }
+.like-btn:hover { background: var(--primary-soft); }
 .pin-info { padding: 0.75rem; }
 .pin-info h4 {
   margin: 0 0 0.25rem 0;
   font-size: 1rem;
-  color: #333;
-  font-weight: 600;
+  color: var(--text);
+  font-weight: 800;
 }
 .description {
   margin: 0 0 0.5rem 0;
   font-size: 0.9rem;
-  color: #666;
+  color: var(--text-muted);
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -121,13 +126,14 @@ const onImageError = (e) => {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.85rem;
-  color: #555;
+  color: var(--text-muted);
+  font-weight: 700;
 }
 .avatar {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #e60023;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
   color: white;
   display: flex;
   align-items: center;
@@ -135,5 +141,14 @@ const onImageError = (e) => {
   font-weight: 600;
   font-size: 0.8rem;
   flex-shrink: 0;
+}
+
+.avatar-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
 }
 </style>

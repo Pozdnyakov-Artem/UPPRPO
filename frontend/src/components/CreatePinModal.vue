@@ -39,7 +39,7 @@
               <div class="drop-icon">📷</div>
               <p>Перетащите изображение сюда</p>
               <p class="drop-hint">или нажмите для выбора файла</p>
-              <p class="drop-limit">PNG, JPG до 10 МБ • или оставьте пустым</p>
+              <p class="drop-limit">PNG, JPG до 10 МБ</p>
             </div>
             
             <input 
@@ -154,13 +154,15 @@
 </template>
 
 <script setup>
-// 🔥 Импорты для ESLint + Vue
-import { ref, computed, onMounted, defineProps, defineEmits } from 'vue'
+import { ref, computed, onMounted, watch, defineProps, defineEmits } from 'vue'
 import { boardsApi, pinsApi, uploadApi } from '@/api/endpoints'
 
-// 🔥 НЕ присваиваем в переменную, если не используем в скрипте
-defineProps({
-  modelValue: Boolean
+const props = defineProps({
+  modelValue: Boolean,
+  boardsVersion: {
+    type: Number,
+    default: 0
+  }
 })
 
 const emit = defineEmits(['update:modelValue', 'pin-created', 'create-board'])
@@ -193,7 +195,8 @@ const error = ref('')
 // Валидация
 const isValid = computed(() => 
   form.value.title.trim().length >= 1 && 
-  form.value.board_id !== null
+  form.value.board_id !== null &&
+  imageFile.value !== null
 )
 
 // Загрузка списка досок при открытии
@@ -201,12 +204,28 @@ onMounted(async () => {
   await loadBoards()
 })
 
+watch(() => props.modelValue, async (isOpen) => {
+  if (isOpen) {
+    await loadBoards()
+  }
+})
+
+watch(() => props.boardsVersion, async () => {
+  const previousBoardId = form.value.board_id
+  await loadBoards()
+  const newestBoard = boards.value[0]
+  if (newestBoard && previousBoardId !== newestBoard.id) {
+    form.value.board_id = newestBoard.id
+  }
+})
+
 const loadBoards = async () => {
   boardsLoading.value = true
   try {
     const response = await boardsApi.getAll()
     boards.value = response.data
-    if (boards.value.length > 0 && !form.value.board_id) {
+    const selectedExists = boards.value.some(board => board.id === Number(form.value.board_id))
+    if (boards.value.length > 0 && (!form.value.board_id || !selectedExists)) {
       form.value.board_id = boards.value[0].id
     }
   } catch (err) {
@@ -289,30 +308,22 @@ const uploadImage = async (file) => {
 
 // 🔥 Основная функция создания пина
 const submit = async () => {
+  if (!imageFile.value) {
+    error.value = 'Загрузите изображение для пина'
+    return
+  }
   if (!isValid.value) return
   
   error.value = ''
   isLoading.value = true
   
   try {
-    let image_url = null
-    
-    // 🔥 Загружаем изображение ТОЛЬКО если пользователь его выбрал
-    if (imageFile.value) {
-      image_url = await uploadImage(imageFile.value)
-    } else {
-      // 🔥 Placeholder для пинов без изображения
-      // Можно отправить null, или ссылку на заглушку
-    //   image_url = 'https://via.placeholder.com/400x600?text=No+Image'
-      // Или: image_url = null (если бэкенд принимает)
-      image_url = null
-    }
-    console.log(form.value.board_id)
+    const image_url = await uploadImage(imageFile.value)
     const pinData = {
       title: form.value.title.trim(),
       description: form.value.description?.trim() || null,
       link_url: form.value.link_url?.trim() || null,
-      image_url: image_url,  // может быть null или заглушка
+      image_url,
       board_id: Number(form.value.board_id)
     }
     
@@ -347,7 +358,7 @@ const closeModal = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(7, 10, 20, 0.62);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -357,8 +368,9 @@ const closeModal = () => {
 }
 
 .modal-card {
-  background: white;
-  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
   width: 100%;
   max-width: 520px;
   max-height: 95vh;
@@ -371,24 +383,24 @@ const closeModal = () => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  background: white;
+  background: var(--surface);
   z-index: 1;
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 1.25rem;
-  color: #333;
+  color: var(--text);
 }
 
 .close-btn {
   background: none;
   border: none;
   font-size: 1.75rem;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 0.25rem 0.5rem;
   line-height: 1;
@@ -396,7 +408,7 @@ const closeModal = () => {
 }
 
 .close-btn:hover {
-  color: #333;
+  color: var(--text);
 }
 
 .modal-form {
@@ -410,7 +422,7 @@ const closeModal = () => {
 .form-group label {
   display: block;
   font-weight: 600;
-  color: #333;
+  color: var(--text);
   margin-bottom: 0.5rem;
   font-size: 0.95rem;
 }
@@ -421,10 +433,12 @@ const closeModal = () => {
 .form-group select {
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   font-size: 1rem;
   font-family: inherit;
+  color: var(--text);
+  background: var(--surface-raised);
   box-sizing: border-box;
   transition: border-color 0.2s;
 }
@@ -433,12 +447,12 @@ const closeModal = () => {
 .form-group textarea:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #e60023;
+  border-color: var(--primary);
 }
 
 .form-group small {
   display: block;
-  color: #999;
+  color: var(--text-muted);
   font-size: 0.8rem;
   margin-top: 0.25rem;
   text-align: right;
@@ -447,7 +461,7 @@ const closeModal = () => {
 .btn-link {
   background: none;
   border: none;
-  color: #e60023;
+  color: var(--primary);
   font-size: 0.9rem;
   cursor: pointer;
   padding: 0;
@@ -466,19 +480,19 @@ const closeModal = () => {
 
 /* 🔥 Drop Zone */
 .drop-zone {
-  border: 3px dashed #ddd;
+  border: 2px dashed var(--border);
   border-radius: 12px;
   padding: 2rem 1rem;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
-  background: #fafafa;
+  background: var(--surface-soft);
 }
 
 .drop-zone:hover,
 .drop-zone.drag-over {
-  border-color: #e60023;
-  background: #fff5f5;
+  border-color: var(--primary);
+  background: var(--primary-soft);
 }
 
 .drop-icon {
@@ -488,17 +502,17 @@ const closeModal = () => {
 
 .drop-zone p {
   margin: 0.25rem 0;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .drop-hint {
   font-size: 0.9rem;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .drop-limit {
   font-size: 0.8rem;
-  color: #bbb;
+  color: var(--text-muted);
   margin-top: 0.75rem;
 }
 
@@ -520,14 +534,14 @@ const closeModal = () => {
   height: auto;
   display: block;
   object-fit: contain;
-  background: #f5f5f5;
+  background: var(--surface-soft);
 }
 
 .image-preview .remove-btn {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  background: rgba(230, 0, 35, 0.9);
+  background: var(--danger);
   color: white;
   border: none;
   border-radius: 50%;
@@ -542,7 +556,7 @@ const closeModal = () => {
 }
 
 .image-preview .remove-btn:hover {
-  background: #c4001d;
+  background: var(--danger);
 }
 
 .preview-overlay {
@@ -570,7 +584,7 @@ const closeModal = () => {
 
 .progress-bar {
   height: 6px;
-  background: #eee;
+  background: var(--surface-soft);
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 0.25rem;
@@ -578,14 +592,14 @@ const closeModal = () => {
 
 .progress-fill {
   height: 100%;
-  background: #e60023;
+  background: var(--primary);
   transition: width 0.2s;
   border-radius: 3px;
 }
 
 .upload-progress span {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--text-muted);
 }
 
 /* 🔥 Alerts */
@@ -597,9 +611,9 @@ const closeModal = () => {
 }
 
 .alert.error {
-  background: #ffebee;
-  color: #c62828;
-  border-left: 4px solid #c62828;
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+  color: var(--danger);
+  border-left: 4px solid var(--danger);
 }
 
 /* 🔥 Actions */
@@ -609,12 +623,12 @@ const closeModal = () => {
   justify-content: flex-end;
   margin-top: 2rem;
   padding-top: 1rem;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border);
 }
 
 .btn {
   padding: 0.75rem 1.5rem;
-  border: none;
+  border: 1px solid var(--border);
   border-radius: 24px;
   font-size: 1rem;
   font-weight: 600;
@@ -628,21 +642,23 @@ const closeModal = () => {
 }
 
 .btn.primary {
-  background: #e60023;
+  background: var(--primary);
+  border-color: var(--primary);
   color: white;
 }
 
 .btn.primary:hover:not(:disabled) {
-  background: #c4001d;
+  background: var(--primary-strong);
+  border-color: var(--primary-strong);
 }
 
 .btn.secondary {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--surface-soft);
+  color: var(--text);
 }
 
 .btn.secondary:hover:not(:disabled) {
-  background: #e0e0e0;
+  background: var(--primary-soft);
 }
 
 /* 🔥 Responsive */

@@ -23,6 +23,7 @@ class UserProfile(BaseModel):
     id: int
     username: str
     description: Optional[str] = None
+    img_url: Optional[str] = None
     image_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -38,7 +39,7 @@ class Token(BaseModel):
 class PinCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
-    image_url: Optional[str] = None
+    image_url: str = Field(..., min_length=1, max_length=500)
     link_url: Optional[str] = None
     board_id: int
     # image_width: Optional[int] = None
@@ -70,6 +71,8 @@ class BoardResponse(BaseModel):
     id: int
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
+    avatar_url: Optional[str] = None
+    preview_images: List[str] = Field(default_factory=list)
     is_private: bool = False
     created_at: datetime
     owner: UserPublic
@@ -79,6 +82,7 @@ class BoardResponse(BaseModel):
 class BoardCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
+    avatar_url: Optional[str] = None
     is_private: bool = False
 
 

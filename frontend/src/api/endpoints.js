@@ -3,6 +3,8 @@ import api from './axios'
 
 export const boardsApi = {
   getAll: () => api.get('/boards'),
+  getVisible: () => api.get('/boards/all'),
+  getPins: (boardId, page = 1, size = 20) => api.get(`/boards/${boardId}/pins`, { params: { page, size } }),
   create: (boardData) => api.post('/create/board', boardData),
   delete: (boardId) => api.delete(`/delete/board/${boardId}`)  // ✅ Только для досок
 }
@@ -11,6 +13,9 @@ export const boardsApi = {
 export const pinsApi = {
   getAll: (page = 1, size = 20) => 
     api.get('/pins', { params: { page, size } }),
+
+  search: (q, page = 1, size = 20) =>
+    api.get('/pins', { params: { q, page, size } }),
   
   getById: (pinId) => api.get(`/pins/${pinId}`),  // ✅ Перенесли сюда
   
@@ -35,6 +40,9 @@ export const profileApi = {
     headers: { 'Content-Type': 'application/json' }
   }),
   updateDescription: (newDesc) => api.patch('/user/change_description', JSON.stringify(newDesc), {
+    headers: { 'Content-Type': 'application/json' }
+  }),
+  updateAvatar: (imageUrl) => api.patch('/user/avatar', JSON.stringify(imageUrl), {
     headers: { 'Content-Type': 'application/json' }
   })
   // GET /user/me добавим позже, пока используем данные из authStore
