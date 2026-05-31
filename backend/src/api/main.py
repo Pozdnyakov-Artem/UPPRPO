@@ -50,7 +50,6 @@ logger = logging.getLogger(__name__)
 class NoCacheMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
-        # Запрещаем браузеру кешировать ответы API
         if request.url.path.startswith("/pins") or request.url.path.startswith("/api"):
             response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
             response.headers["Pragma"] = "no-cache"
@@ -82,7 +81,6 @@ app.add_middleware(
     max_age=3600
 )
 
-# 🔹 2. CORSMiddleware (для фронтенда)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -397,8 +395,8 @@ async def toggle_like(
         select(Pin)
         .where(Pin.id == pin_id)
         .options(
-            joinedload(Pin.author),  # 🔥 Загружаем автора
-            selectinload(Pin.comments)  # 🔥 Загружаем комментарии
+            joinedload(Pin.author),
+            selectinload(Pin.comments)
         )
     )
     pin = result.scalar_one_or_none()

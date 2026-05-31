@@ -96,7 +96,6 @@ services:
     volumes:
       - ./frontend/dist:/usr/share/nginx/html:ro
       - ./nginx/default.conf:/etc/nginx/nginx.conf:ro
-      # - ./certs:/etc/nginx/certs:ro # Для SSL в будущем
     depends_on:
       - frontend
       - backend_upprpo
