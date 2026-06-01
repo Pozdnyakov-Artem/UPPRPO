@@ -13,6 +13,7 @@
           + Пин
         </button>
         <router-link to="/boards" class="btn outline">Доски</router-link>
+        <router-link to="/catalog" class="btn outline">Каталог</router-link>
         <router-link to="/profile" class="btn outline">👤 Профиль</router-link>
       </div>
     </header>

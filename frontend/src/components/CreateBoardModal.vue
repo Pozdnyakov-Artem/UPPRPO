@@ -11,6 +11,24 @@
         <!-- Форма -->
         <form @submit.prevent="submit" class="modal-form">
           <div class="form-group">
+            <label>Аватарка доски</label>
+            <div v-if="avatarPreview" class="avatar-preview" @click="triggerFileInput">
+              <img :src="avatarPreview" alt="Аватарка доски">
+              <button type="button" class="remove-btn" @click.stop="removeAvatar">×</button>
+            </div>
+            <button v-else type="button" class="avatar-picker" @click="triggerFileInput" :disabled="isLoading">
+              Выбрать изображение
+            </button>
+            <input
+              ref="fileInput"
+              class="hidden-input"
+              type="file"
+              accept="image/*"
+              @change="handleFileSelect"
+            >
+          </div>
+
+          <div class="form-group">
             <label for="board-name">Название доски *</label>
             <input
               id="board-name"
@@ -77,7 +95,7 @@
 
 <script setup>
 import { ref, computed, defineProps, defineEmits } from 'vue'
-import { boardsApi } from '@/api/endpoints'
+import { boardsApi, uploadApi } from '@/api/endpoints'
 
 defineProps({
   modelValue: Boolean
@@ -88,13 +106,49 @@ const emit = defineEmits(['update:modelValue', 'board-created'])
 const form = ref({
   name: '',
   description: '',
+  avatar_url: null,
   is_private: false
 })
 
 const isLoading = ref(false)
 const error = ref('')
+const fileInput = ref(null)
+const avatarFile = ref(null)
+const avatarPreview = ref(null)
 
 const isValid = computed(() => form.value.name.trim().length >= 1)
+
+const triggerFileInput = () => {
+  fileInput.value?.click()
+}
+
+const handleFileSelect = (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    error.value = 'Пожалуйста, выберите изображение'
+    return
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    error.value = 'Файл слишком большой (макс. 10 МБ)'
+    return
+  }
+
+  error.value = ''
+  avatarFile.value = file
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    avatarPreview.value = e.target?.result
+  }
+  reader.readAsDataURL(file)
+}
+
+const removeAvatar = () => {
+  avatarFile.value = null
+  avatarPreview.value = null
+  form.value.avatar_url = null
+  if (fileInput.value) fileInput.value.value = ''
+}
 
 const submit = async () => {
   if (!isValid.value) return
@@ -102,18 +156,26 @@ const submit = async () => {
   error.value = ''
   isLoading.value = true
   
-  const payload = {
-    name: form.value.name.trim(),
-    description: form.value.description?.trim() || null,
-    is_private: form.value.is_private
-  }
-  
   try {
+    let avatarUrl = null
+    if (avatarFile.value) {
+      const uploadResponse = await uploadApi.image(avatarFile.value)
+      avatarUrl = uploadResponse.data.image_url
+    }
+
+    const payload = {
+      name: form.value.name.trim(),
+      description: form.value.description?.trim() || null,
+      avatar_url: avatarUrl,
+      is_private: form.value.is_private
+    }
+
     const response = await boardsApi.create(payload)
     
     emit('board-created', response.data)
     emit('update:modelValue', false)
-    form.value = { name: '', description: '', is_private: false }
+    form.value = { name: '', description: '', avatar_url: null, is_private: false }
+    removeAvatar()
     
   } catch (err) {
     error.value = err.response?.data?.detail || 'Ошибка создания доски'
@@ -206,6 +268,54 @@ const submit = async () => {
   background: var(--surface-raised);
   box-sizing: border-box;
   transition: border-color 0.2s;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.avatar-picker {
+  width: 100%;
+  min-height: 116px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.avatar-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  background: var(--surface-raised);
+}
+
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  color: var(--text);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .form-group input:focus,

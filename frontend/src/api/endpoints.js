@@ -13,6 +13,9 @@ export const boardsApi = {
 export const pinsApi = {
   getAll: (page = 1, size = 20) => 
     api.get('/pins', { params: { page, size } }),
+
+  search: (q, page = 1, size = 20) =>
+    api.get('/pins', { params: { q, page, size } }),
   
   getById: (pinId) => api.get(`/pins/${pinId}`),  // ✅ Перенесли сюда
   

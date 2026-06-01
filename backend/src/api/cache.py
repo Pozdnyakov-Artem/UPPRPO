@@ -24,6 +24,7 @@ def pins_key_builder(func, namespace, request: Request, response, *args, **kwarg
         "path": request.url.path,
         "page": request.query_params.get("page", "1"),
         "size": request.query_params.get("size", "20"),
+        "q": request.query_params.get("q", ""),
         "user_id": user_id
     }
     key_str = json.dumps(key_data, sort_keys=True)

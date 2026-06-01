@@ -39,7 +39,7 @@
               <div class="drop-icon">📷</div>
               <p>Перетащите изображение сюда</p>
               <p class="drop-hint">или нажмите для выбора файла</p>
-              <p class="drop-limit">PNG, JPG до 10 МБ • или оставьте пустым</p>
+              <p class="drop-limit">PNG, JPG до 10 МБ</p>
             </div>
             
             <input 
@@ -195,7 +195,8 @@ const error = ref('')
 // Валидация
 const isValid = computed(() => 
   form.value.title.trim().length >= 1 && 
-  form.value.board_id !== null
+  form.value.board_id !== null &&
+  imageFile.value !== null
 )
 
 // Загрузка списка досок при открытии
@@ -307,29 +308,22 @@ const uploadImage = async (file) => {
 
 // 🔥 Основная функция создания пина
 const submit = async () => {
+  if (!imageFile.value) {
+    error.value = 'Загрузите изображение для пина'
+    return
+  }
   if (!isValid.value) return
   
   error.value = ''
   isLoading.value = true
   
   try {
-    let image_url = null
-    
-    // 🔥 Загружаем изображение ТОЛЬКО если пользователь его выбрал
-    if (imageFile.value) {
-      image_url = await uploadImage(imageFile.value)
-    } else {
-      // 🔥 Placeholder для пинов без изображения
-      // Можно отправить null, или ссылку на заглушку
-    //   image_url = 'https://via.placeholder.com/400x600?text=No+Image'
-      // Или: image_url = null (если бэкенд принимает)
-      image_url = null
-    }
+    const image_url = await uploadImage(imageFile.value)
     const pinData = {
       title: form.value.title.trim(),
       description: form.value.description?.trim() || null,
       link_url: form.value.link_url?.trim() || null,
-      image_url: image_url,  // может быть null или заглушка
+      image_url,
       board_id: Number(form.value.board_id)
     }
     

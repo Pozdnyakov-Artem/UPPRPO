@@ -34,6 +34,7 @@ class Board(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
+    avatar_url = Column(String(500), nullable=True)
     is_private = Column(Boolean, server_default=false())
 
     user_id = Column(Integer, ForeignKey("web_users.id", ondelete="CASCADE"), nullable=False)
@@ -48,7 +49,7 @@ class Pin(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
-    image_url = Column(String(500), nullable=True)
+    image_url = Column(String(500), nullable=False)
     link_url = Column(String(500), nullable=True)
 
     # image_width = Column(Integer, default=0)

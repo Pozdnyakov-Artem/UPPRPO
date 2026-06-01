@@ -7,6 +7,7 @@
           {{ isDark ? '☀' : '☾' }}
         </button>
         <router-link to="/" class="btn outline">Лента</router-link>
+        <router-link to="/catalog" class="btn outline">Каталог</router-link>
         <router-link to="/profile" class="btn outline">Профиль</router-link>
       </div>
     </header>
@@ -40,8 +41,17 @@
             class="board-card"
             @click="openBoard(board)"
           >
-            <div class="board-cover">
-              <span>{{ board.name[0]?.toUpperCase() }}</span>
+            <div class="board-cover" :class="{ 'has-grid': !board.avatar_url && board.preview_images?.length }">
+              <img v-if="board.avatar_url" :src="resolveImageUrl(board.avatar_url)" :alt="board.name">
+              <div v-else-if="board.preview_images?.length" class="preview-grid">
+                <img
+                  v-for="image in board.preview_images"
+                  :key="image"
+                  :src="resolveImageUrl(image)"
+                  :alt="board.name"
+                >
+              </div>
+              <span v-else>{{ board.name[0]?.toUpperCase() }}</span>
             </div>
             <div class="board-meta">
               <div>
@@ -109,6 +119,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { boardsApi, pinsApi } from '@/api/endpoints'
+import { resolveImageUrl } from '@/utils/image'
 import PinCard from '@/components/PinCard.vue'
 import CreateBoardModal from '@/components/CreateBoardModal.vue'
 
@@ -356,6 +367,44 @@ onMounted(async () => {
   color: #ffffff;
   font-size: 4rem;
   font-weight: 900;
+  overflow: hidden;
+}
+
+.board-cover > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.board-cover.has-grid {
+  background: var(--surface-raised);
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+
+.preview-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.preview-grid img:first-child:nth-last-child(1) {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+}
+
+.preview-grid img:first-child:nth-last-child(2),
+.preview-grid img:first-child:nth-last-child(2) ~ img {
+  grid-row: 1 / -1;
 }
 
 .board-meta {
