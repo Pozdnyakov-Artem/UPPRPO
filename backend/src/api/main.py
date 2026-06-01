@@ -244,7 +244,7 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
     expires = datetime.utcnow() + timedelta(minutes=10)
 
     await create_user(db=db, user=user, code=code, expires=expires)
-    await send_verification_email(user.email, code)
+    # await send_verification_email(user.email, code)
 
     return {"message": "Пользователь создан. Проверьте почту для подтверждения."}
 
